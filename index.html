@@ -8,179 +8,199 @@
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
   <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
   <style>
-    body { margin: 0; overflow: hidden; }
+
+    @font-face {
+      font-family: 'GameFont';
+      src: url('./fonts/text.otf') format('otf');
+      font-weight: normal;
+      font-display: swap;
+    }
+
+    body { 
+      margin: 0; 
+      overflow: hidden; 
+      font-family: 'GameFont', 'Inter', system-ui, sans-serif;
+    }
     #renderCanvas { width: 100%; height: 100vh; display: block; }
+    .model-card { transition: all 0.2s; }
+    .model-card:hover { transform: scale(1.03); background-color: rgb(39 39 42); }
+    .tab-active { border-bottom: 3px solid #a1a1aa; color: white; }
   </style>
 </head>
 <body>
   <div class="flex h-screen">
-    <!-- SIDEBAR -->
+
     <div class="w-72 bg-zinc-900 border-r border-zinc-800 flex flex-col">
-      <div class="p-6 border-b border-zinc-800">
+      <div class="p-6 border-b border-zinc-800 flex items-center gap-3">
+        <img src="https://via.placeholder.com/32" alt="logo" class="w-8">
         <h1 class="text-2xl font-bold tracking-tighter">MODEL VIEWER</h1>
-        <p class="text-zinc-500 text-sm">Wuthering Waves & Silver Palace</p>
       </div>
 
-      <!-- GAME TABS -->
-      <div class="flex border-b border-zinc-800">
-        <button onclick="switchGame(0)" id="tab-0"
-          class="flex-1 py-4 text-center font-medium tab-active">WUTHERING WAVES</button>
-        <button onclick="switchGame(1)" id="tab-1"
-          class="flex-1 py-4 text-center font-medium">SILVER PALACE</button>
+
+      <div class="flex border-b border-zinc-800" id="game-tabs">
+
       </div>
 
-      <!-- MODEL LIST -->
-      <div class="flex-1 overflow-auto p-4" id="model-list">
-        <!-- Filled by JavaScript -->
+      <div class="flex-1 overflow-auto p-4 space-y-2" id="model-list">
+
       </div>
 
       <div class="p-4 border-t border-zinc-800 text-xs text-zinc-500">
-        Click any model • Orbit with mouse • Scroll to zoom
+        Click any character • Mouse orbit • Scroll zoom
       </div>
     </div>
 
-    <!-- 3D CANVAS -->
     <div class="flex-1 relative">
       <canvas id="renderCanvas"></canvas>
       
-      <!-- Loading indicator -->
-      <div id="loading" class="hidden absolute top-6 left-1/2 -translate-x-1/2 bg-black/80 text-white px-6 py-3 rounded-full flex items-center gap-3">
-        <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-        Loading model...
+      <div id="loading" class="hidden absolute top-6 left-1/2 -translate-x-1/2 bg-black/90 backdrop-blur-md text-white px-8 py-3 rounded-2xl flex items-center gap-3 shadow-2xl">
+        <div class="w-5 h-5 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+        <span id="loading-text">Loading model...</span>
       </div>
     </div>
   </div>
 
   <script>
-    // ================== CONFIG ==================
+
+    const games = [
+      { id: "ww", name: "Wuthering Waves", logo: "logos/ww-logo.png" },
+      { id: "sp", name: "Silver Palace",   logo: "logos/sp-logo.png" }
+    ];
+
     const models = {
-      "Wuthering Waves": [
-        { name: "Cartethyia", file: "cartglb.glb" },
-
+      "ww": [
+        { name: "Cartethyia",   file: "cart.glb",   thumb: "thumbnails/T_IconRoleHead256_40_UI.png" },
       ],
-      "Silver Palace": [
-        { name: "Detective", file: "cartglb.glb" },
-        { name: "Main Heroine", file: "cartglb.glb" },
-
+      "sp": [
+        { name: "Cartethyia",   file: "cart.glb",   thumb: "thumbnails/T_IconRoleHead256_40_UI.png" },
+        // ← ADD MORE MODELS HERE
       ]
     };
 
-    let currentGame = "Wuthering Waves";
-    let scene, camera, engine, currentMesh;
+    let currentGameId = "ww";
+    let scene, camera, engine, currentContainer = null;
 
-    // ================== TAILWIND INIT ==================
     tailwind.config = { content: ["*"] };
 
-    // ================== SWITCH GAME ==================
-    function switchGame(index) {
-      currentGame = index === 0 ? "Wuthering Waves" : "Silver Palace";
-      
-      document.querySelectorAll('.tab-active').forEach(el => el.classList.remove('tab-active'));
-      document.getElementById('tab-' + index).classList.add('tab-active');
-      
+    function createGameTabs() {
+      const container = document.getElementById('game-tabs');
+      container.innerHTML = '';
+      games.forEach((game, i) => {
+        const btn = document.createElement('button');
+        btn.className = `flex-1 py-5 flex items-center justify-center hover:bg-zinc-800 transition-all ${i===0 ? 'tab-active' : ''}`;
+        btn.innerHTML = `<img src="${game.logo}" class="h-9 drop-shadow-md">`;
+        btn.onclick = () => switchGame(game.id);
+        container.appendChild(btn);
+      });
+    }
+
+    function switchGame(gameId) {
+      currentGameId = gameId;
+      document.querySelectorAll('#game-tabs button').forEach((b, i) => {
+        b.classList.toggle('tab-active', games[i].id === gameId);
+      });
       renderModelList();
     }
 
-    // ================== RENDER MODEL LIST ==================
     function renderModelList() {
       const container = document.getElementById('model-list');
       container.innerHTML = '';
 
-      models[currentGame].forEach(model => {
+      models[currentGameId].forEach(model => {
         const div = document.createElement('div');
-        div.className = "model-card p-4 mb-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 cursor-pointer transition-all";
+        div.className = "model-card flex items-center gap-4 p-4 rounded-2xl bg-zinc-800 hover:bg-zinc-700 cursor-pointer";
         div.innerHTML = `
-          <div class="font-medium">${model.name}</div>
-          <div class="text-xs text-zinc-500">${currentGame}</div>
+          <img src="${model.thumb}" class="w-14 h-14 object-cover rounded-xl border border-zinc-700">
+          <div>
+            <div class="font-medium text-lg">${model.name}</div>
+            <div class="text-xs text-zinc-500">${games.find(g => g.id === currentGameId).name}</div>
+          </div>
         `;
         div.onclick = () => loadModel(model.file, model.name);
         container.appendChild(div);
       });
     }
 
-    // ================== LOAD MODEL ==================
     async function loadModel(filename, displayName) {
       const loading = document.getElementById('loading');
+      const loadingText = document.getElementById('loading-text');
       loading.classList.remove('hidden');
+      loadingText.textContent = 'Loading model...';
 
-      // Remove old model
-      if (currentMesh) {
-        currentMesh.dispose();
-        currentMesh = null;
+      if (currentContainer) {
+        currentContainer.dispose();
+        currentContainer = null;
       }
 
       try {
-        const result = await BABYLON.SceneLoader.ImportMeshAsync(
-          "", 
-          "./models/", 
-          filename, 
-          scene
+        const container = await BABYLON.SceneLoader.LoadAssetContainerAsync(
+          "./models/",
+          filename,
+          scene,
+          (evt) => {
+            if (evt.total) {
+              const percent = Math.round((evt.loaded / evt.total) * 100);
+              loadingText.textContent = `Loading model... ${percent}%`;
+            }
+          }
         );
 
-        currentMesh = result.meshes[0];
+        container.addAllToScene();
+        currentContainer = container;
 
-        // Center and scale nicely
-        const bounds = currentMesh.getBoundingInfo();
-        const size = bounds.boundingBox.extendSize.scale(2);
-        const maxDim = Math.max(size.x, size.y, size.z);
-        const scale = 5 / maxDim;
-        currentMesh.scaling.scaleInPlace(scale);
+        const rootMesh = container.meshes.find(m => !m.parent) || container.meshes[0];
 
-        currentMesh.position.y = -bounds.boundingBox.minimum.y * scale;
+        const bounds = rootMesh.getBoundingInfo();
+        const maxDim = Math.max(bounds.boundingBox.extendSize.x, bounds.boundingBox.extendSize.y, bounds.boundingBox.extendSize.z);
+        const scale = 6 / maxDim;
+        rootMesh.scaling.scaleInPlace(scale);
+        rootMesh.position.y = -bounds.boundingBox.minimum.y * scale;
 
-        // Auto-rotate camera to look good
-        camera.setTarget(currentMesh.position);
-        camera.radius = 12;
+        camera.setTarget(rootMesh.getAbsolutePosition());
+        camera.radius = 14;
 
         console.log(`✅ Loaded ${displayName}`);
       } catch (e) {
-        console.error("Failed to load", e);
-        alert("Couldn't load model. Make sure the .glb file is in /models/ folder!");
+        console.error(e);
+        alert("Failed to load model.\n\n1. Check the filename\n2. Run the Blender optimization steps");
       }
 
       loading.classList.add('hidden');
     }
 
-    // ================== INIT BABYLON ==================
     function initBabylon() {
       const canvas = document.getElementById("renderCanvas");
-      engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true });
+      engine = new BABYLON.Engine(canvas, true, { 
+        preserveDrawingBuffer: true,
+        powerPreference: "default"
+      });
       scene = new BABYLON.Scene(engine);
 
-      // Camera
-      camera = new BABYLON.ArcRotateCamera("cam", Math.PI/2, Math.PI/2.5, 12, BABYLON.Vector3.Zero(), scene);
+      camera = new BABYLON.ArcRotateCamera("cam", Math.PI/2, Math.PI/2.5, 14, BABYLON.Vector3.Zero(), scene);
       camera.attachControl(canvas, true);
       camera.wheelPrecision = 50;
-      camera.minZ = 0.1;
-      camera.maxZ = 1000;
 
-      // Lights
-      new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
-      const light2 = new BABYLON.DirectionalLight("light2", new BABYLON.Vector3(-1, -1, -1), scene);
-      light2.intensity = 0.8;
+      new BABYLON.HemisphericLight("hlight", new BABYLON.Vector3(0, 1, 0), scene);
+      const dlight = new BABYLON.DirectionalLight("dlight", new BABYLON.Vector3(-1, -1, -1), scene);
+      dlight.intensity = 0.7;
 
-      // Simple environment (optional nice look)
       scene.environmentTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(
         "https://assets.babylonjs.com/environments/studio.env", scene
       );
-      scene.createDefaultEnvironment({ createSkybox: false });
 
-      // Render loop
       engine.runRenderLoop(() => scene.render());
-
-      // Resize
       window.addEventListener("resize", () => engine.resize());
     }
 
-    // ================== START ==================
     window.onload = () => {
+      createGameTabs();
       initBabylon();
       renderModelList();
       
-      // Load first model automatically
       setTimeout(() => {
-        loadModel(models["Wuthering Waves"][0].file, models["Wuthering Waves"][0].name);
-      }, 300);
+        const firstModel = models["ww"][0];
+        if (firstModel) loadModel(firstModel.file, firstModel.name);
+      }, 100);
     };
   </script>
 </body>
