@@ -52,6 +52,10 @@
       font-size: 1.5rem;
       color: #71717a;
     }
+
+    .tab-active {
+      border-bottom: 4px solid #a1a1aa !important;
+    }
   </style>
 </head>
 <body>
@@ -69,6 +73,7 @@
         Click any character • Mouse orbit • Scroll zoom
       </div>
     </div>
+
     <div class="flex-1 relative">
       <canvas id="renderCanvas"></canvas>
     </div>
@@ -91,14 +96,8 @@
 
     const models = {
       "ww": [
-        { name: "Character 1001", file: "cart.glb", thumb: "thumbnails/T_IconRoleHead256_1001_UI.png" },
-        { name: "Character 1002", file: "cart.glb", thumb: "thumbnails/T_IconRoleHead256_1002_UI.png" },
-        { name: "Character 1003", file: "cart.glb", thumb: "thumbnails/T_IconRoleHead256_1003_UI.png" },
-        { name: "Character 1005", file: "cart.glb", thumb: "thumbnails/T_IconRoleHead256_1005_UI.png" },
-        { name: "Character 10",   file: "cart.glb", thumb: "thumbnails/T_IconRoleHead256_10_UI.png" },
-        { name: "Character 11",   file: "cart.glb", thumb: "thumbnails/T_IconRoleHead256_11_UI.png" },
-        { name: "Jinhsi",         file: "cart.glb", thumb: "thumbnails/T_IconRoleHead256_24_UI.png" },
-        { name: "Cartethyia",   file: "cart.glb", thumb: "thumbnails/T_IconRoleHead256_40_UI.png" }
+        { name: "Aemeath", file: "Aemeath.glb", thumb: "thumbnails/T_IconRoleHead256_53_UI.png" },
+        { name: "Character 1002", file: "cart.glb", thumb: "thumbnails/T_IconRoleHead256_1002_UI.png" }
       ],
       "sp": [
         { name: "Character 32",   file: "cart.glb", thumb: "thumbnails/T_IconRoleHead256_32_UI.png" },
@@ -117,7 +116,7 @@
       container.innerHTML = '';
       games.forEach((game, i) => {
         const btn = document.createElement('button');
-        btn.className = `flex-1 py-5 flex items-center justify-center hover:bg-zinc-800 transition-all ${i===0 ? 'tab-active border-b-4 border-zinc-400' : ''}`;
+        btn.className = `flex-1 py-5 flex items-center justify-center hover:bg-zinc-800 transition-all ${i===0 ? 'tab-active' : ''}`;
         btn.innerHTML = `<img src="${game.logo}" class="h-9 drop-shadow-md">`;
         btn.onclick = () => switchGame(game.id);
         container.appendChild(btn);
@@ -126,7 +125,9 @@
 
     function switchGame(gameId) {
       currentGameId = gameId;
-      document.querySelectorAll('#game-tabs button').forEach((b, i) => b.classList.toggle('tab-active', games[i].id === gameId));
+      document.querySelectorAll('#game-tabs button').forEach((b, i) => {
+        b.classList.toggle('tab-active', games[i].id === gameId);
+      });
       renderModelList();
     }
 
@@ -157,48 +158,32 @@
       loadingProgress.textContent = "0%";
       loadingScreen.classList.add('active');
 
-      if (currentContainer) {
-        currentContainer.dispose();
-        currentContainer = null;
-      }
+      if (currentContainer) { currentContainer.dispose(); currentContainer = null; }
 
       try {
         const container = await BABYLON.SceneLoader.LoadAssetContainerAsync(
-          "./models/", 
-          filename, 
-          scene,
-          (evt) => {
-            if (evt.total) {
-              const perc = Math.round((evt.loaded / evt.total) * 100);
-              loadingProgress.textContent = `${perc}%`;
-            }
-          }
+          "./models/", filename, scene,
+          (evt) => { if (evt.total) loadingProgress.textContent = Math.round((evt.loaded / evt.total) * 100) + "%"; }
         );
 
         container.addAllToScene();
         currentContainer = container;
 
         let root = container.meshes.find(m => m.getTotalVertices() > 0) || container.meshes[0];
-        root.computeWorldMatrix(true);
         const bounds = root.getBoundingInfo().boundingBox;
         const maxDim = Math.max(bounds.extendSize.x, bounds.extendSize.y, bounds.extendSize.z, 0.01);
-        
-        const scaleFactor = 8 / maxDim;  
+        const scaleFactor = 8 / maxDim;
         root.scaling.scaleInPlace(scaleFactor);
-        root.position.y = -bounds.minimum.y * scaleFactor; 
+        root.position.y = -bounds.minimum.y * scaleFactor;
 
         camera.setTarget(root.getAbsolutePosition());
         camera.radius = 13;
-
-        console.log(`✅ Loaded ${displayName} (scale: ${scaleFactor.toFixed(1)})`);
       } catch (e) {
         console.error(e);
-        alert("Failed to load model.\n\nCheck that cart.glb is in /models/");
+        alert("Failed to load model.");
       }
 
-      setTimeout(() => {
-        loadingScreen.classList.remove('active');
-      }, 300);
+      setTimeout(() => loadingScreen.classList.remove('active'), 300);
     }
 
     function initBabylon() {
@@ -226,10 +211,7 @@
       createGameTabs();
       initBabylon();
       renderModelList();
-      
-      setTimeout(() => {
-        loadModel("cart.glb", "Test Cube");
-      }, 300);
+      setTimeout(() => loadModel("cart.glb", "Test Cube"), 300);
     };
   </script>
 </body>
