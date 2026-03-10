@@ -8,18 +8,16 @@
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
   <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
   <style>
-
     @font-face {
       font-family: 'GameFont';
-      src: url('./fonts/text.otf') format('otf');
+      src: url('./fonts/text.otf') format('opentype');
       font-weight: normal;
       font-display: swap;
     }
-
     body { 
       margin: 0; 
       overflow: hidden; 
-      font-family: 'GameFont', 'Inter', system-ui, sans-serif;
+      font-family: 'GameFont', system-ui, sans-serif; 
     }
     #renderCanvas { width: 100%; height: 100vh; display: block; }
     .model-card { transition: all 0.2s; }
@@ -29,24 +27,17 @@
 </head>
 <body>
   <div class="flex h-screen">
-
     <div class="w-72 bg-zinc-900 border-r border-zinc-800 flex flex-col">
       <div class="p-6 border-b border-zinc-800 flex items-center gap-3">
-        <img src="https://via.placeholder.com/32" alt="logo" class="w-8">
         <h1 class="text-2xl font-bold tracking-tighter">MODEL VIEWER</h1>
       </div>
 
+      <div class="flex border-b border-zinc-800" id="game-tabs"></div>
 
-      <div class="flex border-b border-zinc-800" id="game-tabs">
-
-      </div>
-
-      <div class="flex-1 overflow-auto p-4 space-y-2" id="model-list">
-
-      </div>
+      <div class="flex-1 overflow-auto p-4 space-y-2" id="model-list"></div>
 
       <div class="p-4 border-t border-zinc-800 text-xs text-zinc-500">
-        Click any character • Mouse orbit • Scroll zoom
+        Click any character • Mouse to orbit • Scroll to zoom
       </div>
     </div>
 
@@ -69,11 +60,10 @@
 
     const models = {
       "ww": [
-        { name: "Cartethyia",   file: "cart.glb",   thumb: "thumbnails/T_IconRoleHead256_40_UI.png" },
+        { name: "Cartethyia", file: "cart.glb", thumb: "thumbnails/T_IconRoleHead256_40_UI.png" }
       ],
       "sp": [
-        { name: "Cartethyia",   file: "cart.glb",   thumb: "thumbnails/T_IconRoleHead256_40_UI.png" },
-        // ← ADD MORE MODELS HERE
+        { name: "Character 32",   file: "cart.glb", thumb: "thumbnails/T_IconRoleHead256_32_UI.png" }
       ]
     };
 
@@ -127,66 +117,43 @@
       loading.classList.remove('hidden');
       loadingText.textContent = 'Loading model...';
 
-      if (currentContainer) {
-        currentContainer.dispose();
-        currentContainer = null;
-      }
+      if (currentContainer) { currentContainer.dispose(); currentContainer = null; }
 
       try {
-        const container = await BABYLON.SceneLoader.LoadAssetContainerAsync(
-          "./models/",
-          filename,
-          scene,
-          (evt) => {
-            if (evt.total) {
-              const percent = Math.round((evt.loaded / evt.total) * 100);
-              loadingText.textContent = `Loading model... ${percent}%`;
-            }
-          }
-        );
-
+        const container = await BABYLON.SceneLoader.LoadAssetContainerAsync("./models/", filename, scene);
         container.addAllToScene();
         currentContainer = container;
 
-        const rootMesh = container.meshes.find(m => !m.parent) || container.meshes[0];
+        const root = container.meshes[0];
+        const scale = 6 / Math.max(...root.getBoundingInfo().boundingBox.extendSize.asArray());
+        root.scaling.scaleInPlace(scale);
+        root.position.y = -root.getBoundingInfo().boundingBox.minimum.y * scale;
 
-        const bounds = rootMesh.getBoundingInfo();
-        const maxDim = Math.max(bounds.boundingBox.extendSize.x, bounds.boundingBox.extendSize.y, bounds.boundingBox.extendSize.z);
-        const scale = 6 / maxDim;
-        rootMesh.scaling.scaleInPlace(scale);
-        rootMesh.position.y = -bounds.boundingBox.minimum.y * scale;
-
-        camera.setTarget(rootMesh.getAbsolutePosition());
+        camera.setTarget(root.getAbsolutePosition());
         camera.radius = 14;
 
         console.log(`✅ Loaded ${displayName}`);
       } catch (e) {
         console.error(e);
-        alert("Failed to load model.\n\n1. Check the filename\n2. Run the Blender optimization steps");
+        alert("Model failed to load.\n\nMake sure cart.glb is in the models folder.");
       }
-
       loading.classList.add('hidden');
     }
 
+
     function initBabylon() {
       const canvas = document.getElementById("renderCanvas");
-      engine = new BABYLON.Engine(canvas, true, { 
-        preserveDrawingBuffer: true,
-        powerPreference: "default"
-      });
+      engine = new BABYLON.Engine(canvas, true, { powerPreference: "default" });
       scene = new BABYLON.Scene(engine);
 
       camera = new BABYLON.ArcRotateCamera("cam", Math.PI/2, Math.PI/2.5, 14, BABYLON.Vector3.Zero(), scene);
       camera.attachControl(canvas, true);
-      camera.wheelPrecision = 50;
 
-      new BABYLON.HemisphericLight("hlight", new BABYLON.Vector3(0, 1, 0), scene);
-      const dlight = new BABYLON.DirectionalLight("dlight", new BABYLON.Vector3(-1, -1, -1), scene);
-      dlight.intensity = 0.7;
+      new BABYLON.HemisphericLight("h", new BABYLON.Vector3(0,1,0), scene);
+      const d = new BABYLON.DirectionalLight("d", new BABYLON.Vector3(-1,-1,-1), scene);
+      d.intensity = 0.7;
 
-      scene.environmentTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(
-        "https://assets.babylonjs.com/environments/studio.env", scene
-      );
+      scene.environmentTexture = BABYLON.CubeTexture.CreateFromPrefilteredData("https://assets.babylonjs.com/environments/studio.env", scene);
 
       engine.runRenderLoop(() => scene.render());
       window.addEventListener("resize", () => engine.resize());
@@ -196,11 +163,7 @@
       createGameTabs();
       initBabylon();
       renderModelList();
-      
-      setTimeout(() => {
-        const firstModel = models["ww"][0];
-        if (firstModel) loadModel(firstModel.file, firstModel.name);
-      }, 100);
+      setTimeout(() => loadModel("cart.glb", "Test Model"), 200);
     };
   </script>
 </body>
