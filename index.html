@@ -20,9 +20,38 @@
       font-family: 'GameFont', system-ui, sans-serif; 
     }
     #renderCanvas { width: 100%; height: 100vh; display: block; }
-    .model-card { transition: all 0.2s; }
-    .model-card:hover { transform: scale(1.03); background-color: rgb(39 39 42); }
-    .tab-active { border-bottom: 3px solid #a1a1aa; color: white; }
+
+    #loading {
+      position: fixed;
+      inset: 0;
+      background: #09090b;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      flex-direction: column;
+      gap: 2rem;
+    }
+    #loading.active { display: flex; }
+    .spinner {
+      width: 80px;
+      height: 80px;
+      border: 6px solid #27272a;
+      border-top: 6px solid #a1a1aa;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text {
+      font-size: 3.5rem;
+      font-weight: 700;
+      letter-spacing: 8px;
+      text-shadow: 0 0 30px rgba(161,161,170,0.5);
+    }
+    .model-name {
+      font-size: 1.5rem;
+      color: #71717a;
+    }
   </style>
 </head>
 <body>
@@ -37,22 +66,24 @@
       <div class="flex-1 overflow-auto p-4 space-y-2" id="model-list"></div>
 
       <div class="p-4 border-t border-zinc-800 text-xs text-zinc-500">
-        Click any character • Mouse to orbit • Scroll to zoom
+        Click any character • Mouse orbit • Scroll zoom
       </div>
     </div>
-
     <div class="flex-1 relative">
       <canvas id="renderCanvas"></canvas>
-      
-      <div id="loading" class="hidden absolute top-6 left-1/2 -translate-x-1/2 bg-black/90 backdrop-blur-md text-white px-8 py-3 rounded-2xl flex items-center gap-3 shadow-2xl">
-        <div class="w-5 h-5 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
-        <span id="loading-text">Loading model...</span>
-      </div>
     </div>
   </div>
 
-  <script>
+  <div id="loading">
+    <div class="spinner"></div>
+    <div>
+      <div class="loading-text text-white">LOADING</div>
+      <div id="loading-name" class="model-name text-center"></div>
+    </div>
+    <div id="loading-progress" class="text-zinc-400 text-xl font-medium">0%</div>
+  </div>
 
+  <script>
     const games = [
       { id: "ww", name: "Wuthering Waves", logo: "logos/ww-logo.png" },
       { id: "sp", name: "Silver Palace",   logo: "logos/sp-logo.png" }
@@ -60,10 +91,19 @@
 
     const models = {
       "ww": [
-        { name: "Cartethyia", file: "cart.glb", thumb: "thumbnails/T_IconRoleHead256_40_UI.png" }
+        { name: "Character 1001", file: "cart.glb", thumb: "thumbnails/T_IconRoleHead256_1001_UI.png" },
+        { name: "Character 1002", file: "cart.glb", thumb: "thumbnails/T_IconRoleHead256_1002_UI.png" },
+        { name: "Character 1003", file: "cart.glb", thumb: "thumbnails/T_IconRoleHead256_1003_UI.png" },
+        { name: "Character 1005", file: "cart.glb", thumb: "thumbnails/T_IconRoleHead256_1005_UI.png" },
+        { name: "Character 10",   file: "cart.glb", thumb: "thumbnails/T_IconRoleHead256_10_UI.png" },
+        { name: "Character 11",   file: "cart.glb", thumb: "thumbnails/T_IconRoleHead256_11_UI.png" },
+        { name: "Jinhsi",         file: "cart.glb", thumb: "thumbnails/T_IconRoleHead256_24_UI.png" },
+        { name: "Cartethyia",   file: "cart.glb", thumb: "thumbnails/T_IconRoleHead256_40_UI.png" }
       ],
       "sp": [
-        { name: "Character 32",   file: "cart.glb", thumb: "thumbnails/T_IconRoleHead256_32_UI.png" }
+        { name: "Character 32",   file: "cart.glb", thumb: "thumbnails/T_IconRoleHead256_32_UI.png" },
+        { name: "Character 38",   file: "cart.glb", thumb: "thumbnails/T_IconRoleHead256_38_UI.png" },
+        { name: "Detective",      file: "cart.glb", thumb: "thumbnails/T_IconRoleHead256_1006_UI.png" }
       ]
     };
 
@@ -77,7 +117,7 @@
       container.innerHTML = '';
       games.forEach((game, i) => {
         const btn = document.createElement('button');
-        btn.className = `flex-1 py-5 flex items-center justify-center hover:bg-zinc-800 transition-all ${i===0 ? 'tab-active' : ''}`;
+        btn.className = `flex-1 py-5 flex items-center justify-center hover:bg-zinc-800 transition-all ${i===0 ? 'tab-active border-b-4 border-zinc-400' : ''}`;
         btn.innerHTML = `<img src="${game.logo}" class="h-9 drop-shadow-md">`;
         btn.onclick = () => switchGame(game.id);
         container.appendChild(btn);
@@ -86,19 +126,16 @@
 
     function switchGame(gameId) {
       currentGameId = gameId;
-      document.querySelectorAll('#game-tabs button').forEach((b, i) => {
-        b.classList.toggle('tab-active', games[i].id === gameId);
-      });
+      document.querySelectorAll('#game-tabs button').forEach((b, i) => b.classList.toggle('tab-active', games[i].id === gameId));
       renderModelList();
     }
 
     function renderModelList() {
       const container = document.getElementById('model-list');
       container.innerHTML = '';
-
       models[currentGameId].forEach(model => {
         const div = document.createElement('div');
-        div.className = "model-card flex items-center gap-4 p-4 rounded-2xl bg-zinc-800 hover:bg-zinc-700 cursor-pointer";
+        div.className = "model-card flex items-center gap-4 p-4 rounded-2xl bg-zinc-800 hover:bg-zinc-700 cursor-pointer transition-all";
         div.innerHTML = `
           <img src="${model.thumb}" class="w-14 h-14 object-cover rounded-xl border border-zinc-700">
           <div>
@@ -112,48 +149,74 @@
     }
 
     async function loadModel(filename, displayName) {
-      const loading = document.getElementById('loading');
-      const loadingText = document.getElementById('loading-text');
-      loading.classList.remove('hidden');
-      loadingText.textContent = 'Loading model...';
+      const loadingScreen = document.getElementById('loading');
+      const loadingName = document.getElementById('loading-name');
+      const loadingProgress = document.getElementById('loading-progress');
 
-      if (currentContainer) { currentContainer.dispose(); currentContainer = null; }
+      loadingName.textContent = displayName;
+      loadingProgress.textContent = "0%";
+      loadingScreen.classList.add('active');
+
+      if (currentContainer) {
+        currentContainer.dispose();
+        currentContainer = null;
+      }
 
       try {
-        const container = await BABYLON.SceneLoader.LoadAssetContainerAsync("./models/", filename, scene);
+        const container = await BABYLON.SceneLoader.LoadAssetContainerAsync(
+          "./models/", 
+          filename, 
+          scene,
+          (evt) => {
+            if (evt.total) {
+              const perc = Math.round((evt.loaded / evt.total) * 100);
+              loadingProgress.textContent = `${perc}%`;
+            }
+          }
+        );
+
         container.addAllToScene();
         currentContainer = container;
 
-        const root = container.meshes[0];
-        const scale = 6 / Math.max(...root.getBoundingInfo().boundingBox.extendSize.asArray());
-        root.scaling.scaleInPlace(scale);
-        root.position.y = -root.getBoundingInfo().boundingBox.minimum.y * scale;
+        let root = container.meshes.find(m => m.getTotalVertices() > 0) || container.meshes[0];
+        root.computeWorldMatrix(true);
+        const bounds = root.getBoundingInfo().boundingBox;
+        const maxDim = Math.max(bounds.extendSize.x, bounds.extendSize.y, bounds.extendSize.z, 0.01);
+        
+        const scaleFactor = 8 / maxDim;  
+        root.scaling.scaleInPlace(scaleFactor);
+        root.position.y = -bounds.minimum.y * scaleFactor; 
 
         camera.setTarget(root.getAbsolutePosition());
-        camera.radius = 14;
+        camera.radius = 13;
 
-        console.log(`✅ Loaded ${displayName}`);
+        console.log(`✅ Loaded ${displayName} (scale: ${scaleFactor.toFixed(1)})`);
       } catch (e) {
         console.error(e);
-        alert("Model failed to load.\n\nMake sure cart.glb is in the models folder.");
+        alert("Failed to load model.\n\nCheck that cart.glb is in /models/");
       }
-      loading.classList.add('hidden');
-    }
 
+      setTimeout(() => {
+        loadingScreen.classList.remove('active');
+      }, 300);
+    }
 
     function initBabylon() {
       const canvas = document.getElementById("renderCanvas");
       engine = new BABYLON.Engine(canvas, true, { powerPreference: "default" });
       scene = new BABYLON.Scene(engine);
 
-      camera = new BABYLON.ArcRotateCamera("cam", Math.PI/2, Math.PI/2.5, 14, BABYLON.Vector3.Zero(), scene);
+      camera = new BABYLON.ArcRotateCamera("cam", Math.PI/2, Math.PI/2.4, 13, BABYLON.Vector3.Zero(), scene);
       camera.attachControl(canvas, true);
+      camera.wheelPrecision = 50;
 
       new BABYLON.HemisphericLight("h", new BABYLON.Vector3(0,1,0), scene);
-      const d = new BABYLON.DirectionalLight("d", new BABYLON.Vector3(-1,-1,-1), scene);
-      d.intensity = 0.7;
+      const dlight = new BABYLON.DirectionalLight("d", new BABYLON.Vector3(-1,-1,-1), scene);
+      dlight.intensity = 0.8;
 
-      scene.environmentTexture = BABYLON.CubeTexture.CreateFromPrefilteredData("https://assets.babylonjs.com/environments/studio.env", scene);
+      scene.environmentTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(
+        "https://assets.babylonjs.com/environments/studio.env", scene
+      );
 
       engine.runRenderLoop(() => scene.render());
       window.addEventListener("resize", () => engine.resize());
@@ -163,7 +226,10 @@
       createGameTabs();
       initBabylon();
       renderModelList();
-      setTimeout(() => loadModel("cart.glb", "Test Model"), 200);
+      
+      setTimeout(() => {
+        loadModel("cart.glb", "Test Cube");
+      }, 300);
     };
   </script>
 </body>
