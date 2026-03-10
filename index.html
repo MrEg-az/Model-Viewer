@@ -167,23 +167,26 @@
         );
 
         container.addAllToScene();
-        currentContainer = container;
+        modelRoot = new BABYLON.TransformNode("modelRoot", scene);
 
-        let root = container.meshes.find(m => m.getTotalVertices() > 0) || container.meshes[0];
-        const bounds = root.getBoundingInfo().boundingBox;
-        const maxDim = Math.max(bounds.extendSize.x, bounds.extendSize.y, bounds.extendSize.z, 0.01);
+        const visualMeshes = container.meshes.filter(m => m.getTotalVertices() > 10);
+        visualMeshes.forEach(m => {
+          if (!m.parent || m.parent.name === "__root__") m.parent = modelRoot;
+        });
+        const vectors = modelRoot.getHierarchyBoundingVectors(true);
+        const size = vectors.max.subtract(vectors.min);
+        const maxDim = Math.max(size.x, size.y, size.z);
         const scaleFactor = 8 / maxDim;
-        root.scaling.scaleInPlace(scaleFactor);
-        root.position.y = -bounds.minimum.y * scaleFactor;
 
-        camera.setTarget(root.getAbsolutePosition());
+        modelRoot.scaling.scaleInPlace(scaleFactor);
+        modelRoot.position.y = -vectors.min.y * scaleFactor;
+
+        camera.setTarget(modelRoot.position);
         camera.radius = 13;
-      } catch (e) {
-        console.error(e);
-        alert("Failed to load model.");
-      }
 
-      setTimeout(() => loadingScreen.classList.remove('active'), 300);
+      } catch(e) { console.error(e); alert("Load failed"); }
+
+      setTimeout(() => loading.classList.remove('active'), 300);
     }
 
     function initBabylon() {
