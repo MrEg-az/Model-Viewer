@@ -14,48 +14,20 @@
       font-weight: normal;
       font-display: swap;
     }
-    body { 
-      margin: 0; 
-      overflow: hidden; 
-      font-family: 'GameFont', system-ui, sans-serif; 
-    }
+    body { margin: 0; overflow: hidden; font-family: 'GameFont', system-ui, sans-serif; }
     #renderCanvas { width: 100%; height: 100vh; display: block; }
 
     #loading {
-      position: fixed;
-      inset: 0;
-      background: #09090b;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 50;
-      flex-direction: column;
-      gap: 2rem;
+      position: fixed; inset: 0; background: #09090b;
+      display: none; align-items: center; justify-content: center;
+      z-index: 50; flex-direction: column; gap: 2rem;
     }
     #loading.active { display: flex; }
-    .spinner {
-      width: 80px;
-      height: 80px;
-      border: 6px solid #27272a;
-      border-top: 6px solid #a1a1aa;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
+    .spinner { width: 80px; height: 80px; border: 6px solid #27272a; border-top: 6px solid #a1a1aa; border-radius: 50%; animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text {
-      font-size: 3.5rem;
-      font-weight: 700;
-      letter-spacing: 8px;
-      text-shadow: 0 0 30px rgba(161,161,170,0.5);
-    }
-    .model-name {
-      font-size: 1.5rem;
-      color: #71717a;
-    }
-
-    .tab-active {
-      border-bottom: 4px solid #a1a1aa !important;
-    }
+    .loading-text { font-size: 3.5rem; font-weight: 700; letter-spacing: 8px; text-shadow: 0 0 30px rgba(161,161,170,0.5); }
+    .model-name { font-size: 1.5rem; color: #71717a; }
+    .tab-active { border-bottom: 4px solid #a1a1aa !important; }
   </style>
 </head>
 <body>
@@ -64,16 +36,12 @@
       <div class="p-6 border-b border-zinc-800 flex items-center gap-3">
         <h1 class="text-2xl font-bold tracking-tighter">MODEL VIEWER</h1>
       </div>
-
       <div class="flex border-b border-zinc-800" id="game-tabs"></div>
-
       <div class="flex-1 overflow-auto p-4 space-y-2" id="model-list"></div>
-
       <div class="p-4 border-t border-zinc-800 text-xs text-zinc-500">
         Click any character • Mouse orbit • Scroll zoom
       </div>
     </div>
-
     <div class="flex-1 relative">
       <canvas id="renderCanvas"></canvas>
     </div>
@@ -90,24 +58,24 @@
 
   <script>
     const games = [
-      { id: "ww", name: "Wuthering Waves", logo: "logos/ww-logo.png" },
-      { id: "sp", name: "Silver Palace",   logo: "logos/sp-logo.png" }
+      { id: "ww", name: "Wuthering Waves", logo: "logos/ww-logo.png", skybox: "skyboxes/wuwa.hdr" },
+      { id: "sp", name: "Silver Palace",   logo: "logos/sp-logo.png", skybox: "skyboxes/sp.hdr" }
     ];
 
     const models = {
       "ww": [
-        { name: "Aemeath", file: "Aemeath.glb", thumb: "thumbnails/T_IconRoleHead256_53_UI.png" },
-        { name: "Character 1002", file: "cart.glb", thumb: "thumbnails/T_IconRoleHead256_1002_UI.png" }
+        { name: "Aemeath", file: "Aemeath.glb", thumb: "thumbnails/ww/T_IconRoleHead256_53_UI.png" },
+        { name: "Character 1002", file: "cart.glb", thumb: "thumbnails/ww/T_IconRoleHead256_1002_UI.png" }
       ],
       "sp": [
-        { name: "Character 32",   file: "cart.glb", thumb: "thumbnails/T_IconRoleHead256_32_UI.png" },
-        { name: "Rosy",   file: "Rosy1.glb", thumb: "thumbnails/T_IconRoleHead256_38_UI.png" },
-        { name: "Detective",      file: "test.glb", thumb: "thumbnails/T_IconRoleHead256_1006_UI.png" }
+        { name: "Detective", file: "test.glb", thumb: "thumbnails/sp/icon_character_card_large_1001.png" }
       ]
     };
 
     let currentGameId = "ww";
-    let scene, camera, engine, currentContainer = null;
+    let scene, camera, engine;
+    let currentContainer = null;
+    let modelRoot = null;
 
     tailwind.config = { content: ["*"] };
 
@@ -129,6 +97,7 @@
         b.classList.toggle('tab-active', games[i].id === gameId);
       });
       renderModelList();
+      updateSkybox();
     }
 
     function renderModelList() {
@@ -159,6 +128,7 @@
       loadingScreen.classList.add('active');
 
       if (currentContainer) { currentContainer.dispose(); currentContainer = null; }
+      if (modelRoot) { modelRoot.dispose(); modelRoot = null; }
 
       try {
         const container = await BABYLON.SceneLoader.LoadAssetContainerAsync(
@@ -167,12 +137,15 @@
         );
 
         container.addAllToScene();
+        currentContainer = container;
+
         modelRoot = new BABYLON.TransformNode("modelRoot", scene);
 
         const visualMeshes = container.meshes.filter(m => m.getTotalVertices() > 10);
         visualMeshes.forEach(m => {
           if (!m.parent || m.parent.name === "__root__") m.parent = modelRoot;
         });
+
         const vectors = modelRoot.getHierarchyBoundingVectors(true);
         const size = vectors.max.subtract(vectors.min);
         const maxDim = Math.max(size.x, size.y, size.z);
@@ -184,9 +157,24 @@
         camera.setTarget(modelRoot.position);
         camera.radius = 13;
 
-      } catch(e) { console.error(e); alert("Load failed"); }
+      } catch(e) {
+        console.error(e);
+        alert("Load failed");
+      }
 
-      setTimeout(() => loading.classList.remove('active'), 300);
+      setTimeout(() => loadingScreen.classList.remove('active'), 300);
+    }
+
+    function updateSkybox() {
+      if (!scene) return;
+      if (scene.environmentTexture) scene.environmentTexture.dispose();
+
+      const currentGame = games.find(g => g.id === currentGameId);
+      scene.environmentTexture = new BABYLON.HDRCubeTexture(
+        `./${currentGame.skybox}`, 
+        scene, 
+        512, false, true, true, true
+      );
     }
 
     function initBabylon() {
@@ -202,10 +190,6 @@
       const dlight = new BABYLON.DirectionalLight("d", new BABYLON.Vector3(-1,-1,-1), scene);
       dlight.intensity = 0.8;
 
-      scene.environmentTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(
-        "https://assets.babylonjs.com/environments/studio.env", scene
-      );
-
       engine.runRenderLoop(() => scene.render());
       window.addEventListener("resize", () => engine.resize());
     }
@@ -214,6 +198,7 @@
       createGameTabs();
       initBabylon();
       renderModelList();
+      updateSkybox();
       setTimeout(() => loadModel("cart.glb", "Test Cube"), 300);
     };
   </script>
