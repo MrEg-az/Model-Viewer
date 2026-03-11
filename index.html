@@ -144,7 +144,7 @@
             <div class="text-xs text-zinc-500">${games.find(g => g.id === currentGameId).name}</div>
           </div>
         `;
-        div.onclick = () => loadModel(model.file, model.name);
+        div.onclick = () => loadCharacter(model.file, model.name);
         container.appendChild(div);
       });
     }
