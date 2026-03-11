@@ -76,6 +76,7 @@
     let scene, camera, engine;
     let currentContainer = null;
     let modelRoot = null;
+    let skyboxMesh = null;
 
     tailwind.config = { content: ["*"] };
 
@@ -140,7 +141,6 @@
         currentContainer = container;
 
         modelRoot = new BABYLON.TransformNode("modelRoot", scene);
-
         const visualMeshes = container.meshes.filter(m => m.getTotalVertices() > 10);
         visualMeshes.forEach(m => {
           if (!m.parent || m.parent.name === "__root__") m.parent = modelRoot;
@@ -157,17 +157,14 @@
         camera.setTarget(modelRoot.position);
         camera.radius = 13;
 
-      } catch(e) {
-        console.error(e);
-        alert("Load failed");
-      }
+      } catch(e) { console.error(e); alert("Load failed"); }
 
       setTimeout(() => loadingScreen.classList.remove('active'), 300);
     }
 
-   function updateSkybox() {
+    function updateSkybox() {
       if (!scene) return;
-
+      if (skyboxMesh) { skyboxMesh.dispose(); skyboxMesh = null; }
       if (scene.environmentTexture) {
         scene.environmentTexture.dispose();
         scene.environmentTexture = null;
@@ -178,16 +175,19 @@
 
       scene.environmentTexture = new BABYLON.HDRCubeTexture(hdrUrl, scene, 512);
 
-      scene.environmentIntensity = 1.4;
-      scene.environmentTexture.rotationY = Math.PI / 2;
+      scene.environmentIntensity = 1.3;
+      scene.environmentTexture.rotationY = Math.PI * 0.6;
 
-      console.log(`🌌 Skybox loaded: ${game.skybox}`);
+      skyboxMesh = scene.createDefaultSkybox(scene.environmentTexture, true, 1200, 0.6, false);
+
+      console.log(`🌌 Visible HDR skybox loaded: ${game.skybox}`);
     }
 
     function initBabylon() {
       const canvas = document.getElementById("renderCanvas");
       engine = new BABYLON.Engine(canvas, true, { powerPreference: "default" });
       scene = new BABYLON.Scene(engine);
+      scene.clearColor = new BABYLON.Color4(0.02, 0.02, 0.05, 1);
 
       camera = new BABYLON.ArcRotateCamera("cam", Math.PI/2, Math.PI/2.4, 13, BABYLON.Vector3.Zero(), scene);
       camera.attachControl(canvas, true);
@@ -195,7 +195,7 @@
 
       new BABYLON.HemisphericLight("h", new BABYLON.Vector3(0,1,0), scene);
       const dlight = new BABYLON.DirectionalLight("d", new BABYLON.Vector3(-1,-1,-1), scene);
-      dlight.intensity = 0.8;
+      dlight.intensity = 0.6;
 
       engine.runRenderLoop(() => scene.render());
       window.addEventListener("resize", () => engine.resize());
