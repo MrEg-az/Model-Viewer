@@ -44,7 +44,6 @@
     </div>
     <div class="flex-1 relative">
       <canvas id="renderCanvas"></canvas>
-      
       <div id="skin-switcher" class="text-white">
         <button onclick="prevSkin()" class="w-8 h-8 flex items-center justify-center hover:bg-zinc-700 rounded-xl">←</button>
         <div class="font-medium min-w-[120px] text-center" id="skin-name">Default</div>
@@ -144,7 +143,7 @@
             <div class="text-xs text-zinc-500">${games.find(g => g.id === currentGameId).name}</div>
           </div>
         `;
-        div.onclick = () => loadCharacter(model.file, model.name);
+        div.onclick = () => loadCharacter(model);
         container.appendChild(div);
       });
     }
@@ -162,7 +161,9 @@
 
       const loadingScreen = document.getElementById('loading');
       const loadingName = document.getElementById('loading-name');
+      const loadingProgress = document.getElementById('loading-progress');
       loadingName.textContent = displayName;
+      loadingProgress.textContent = "0%";
       loadingScreen.classList.add('active');
 
       if (currentContainer) { currentContainer.dispose(); currentContainer = null; }
@@ -171,7 +172,7 @@
       try {
         const container = await BABYLON.SceneLoader.LoadAssetContainerAsync(
           "./models/", skin.file, scene,
-          (evt) => { if (evt.total) document.getElementById('loading-progress').textContent = Math.round((evt.loaded / evt.total) * 100) + "%"; }
+          (evt) => { if (evt.total) loadingProgress.textContent = Math.round((evt.loaded / evt.total) * 100) + "%"; }
         );
 
         container.addAllToScene();
@@ -179,7 +180,9 @@
 
         modelRoot = new BABYLON.TransformNode("modelRoot", scene);
         const visualMeshes = container.meshes.filter(m => m.getTotalVertices() > 10);
-        visualMeshes.forEach(m => { if (!m.parent || m.parent.name === "__root__") m.parent = modelRoot; });
+        visualMeshes.forEach(m => {
+          if (!m.parent || m.parent.name === "__root__") m.parent = modelRoot;
+        });
 
         const vectors = modelRoot.getHierarchyBoundingVectors(true);
         const size = vectors.max.subtract(vectors.min);
@@ -205,27 +208,30 @@
         btn.classList.remove('active');
         return;
       }
-      const skin = currentModelConfig.skins[currentSkinIndex];
-      document.getElementById('skin-name').textContent = skin.skinName;
+      document.getElementById('skin-name').textContent = currentModelConfig.skins[currentSkinIndex].skinName;
       btn.classList.add('active');
     }
 
-    window.prevSkin = () => { if (!currentModelConfig) return; currentSkinIndex = (currentSkinIndex - 1 + currentModelConfig.skins.length) % currentModelConfig.skins.length; loadSkin(); };
-    window.nextSkin = () => { if (!currentModelConfig) return; currentSkinIndex = (currentSkinIndex + 1) % currentModelConfig.skins.length; loadSkin(); };
+    window.prevSkin = () => { 
+      if (!currentModelConfig) return; 
+      currentSkinIndex = (currentSkinIndex - 1 + currentModelConfig.skins.length) % currentModelConfig.skins.length; 
+      loadSkin(); 
+    };
+    window.nextSkin = () => { 
+      if (!currentModelConfig) return; 
+      currentSkinIndex = (currentSkinIndex + 1) % currentModelConfig.skins.length; 
+      loadSkin(); 
+    };
 
     function updateSkybox() {
       if (!scene) return;
       if (skyboxMesh) { skyboxMesh.dispose(); skyboxMesh = null; }
-      if (scene.environmentTexture) {
-        scene.environmentTexture.dispose();
-        scene.environmentTexture = null;
-      }
+      if (scene.environmentTexture) { scene.environmentTexture.dispose(); scene.environmentTexture = null; }
 
       const game = games.find(g => g.id === currentGameId);
       const hdrUrl = `./${game.skybox}`;
 
       scene.environmentTexture = new BABYLON.HDRCubeTexture(hdrUrl, scene, game.cubeSize);
-
       scene.environmentIntensity = 1.45;
 
       skyboxMesh = scene.createDefaultSkybox(scene.environmentTexture, true, 3000, 0, false);
