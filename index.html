@@ -4,9 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Wuthering Waves & Silver Palace Viewer</title>
-  
   <link rel="icon" type="image/png" href="logos/ww-logo.png">
-
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
   <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
@@ -22,6 +20,14 @@
     .loading-text { font-size: 3.5rem; font-weight: 700; letter-spacing: 8px; text-shadow: 0 0 30px rgba(161,161,170,0.5); }
     .model-name { font-size: 1.5rem; color: #71717a; }
     .tab-active { border-bottom: 4px solid #a1a1aa !important; }
+
+    #skin-switcher {
+      position: absolute; bottom: 24px; right: 24px; z-index: 40;
+      background: rgba(9,9,11,0.85); backdrop-filter: blur(12px);
+      border: 1px solid #3f3f46; padding: 8px 16px; border-radius: 9999px;
+      display: none; align-items: center; gap: 12px; font-size: 0.95rem;
+    }
+    #skin-switcher.active { display: flex; }
   </style>
 </head>
 <body>
@@ -38,6 +44,12 @@
     </div>
     <div class="flex-1 relative">
       <canvas id="renderCanvas"></canvas>
+      
+      <div id="skin-switcher" class="text-white">
+        <button onclick="prevSkin()" class="w-8 h-8 flex items-center justify-center hover:bg-zinc-700 rounded-xl">←</button>
+        <div class="font-medium min-w-[120px] text-center" id="skin-name">Default</div>
+        <button onclick="nextSkin()" class="w-8 h-8 flex items-center justify-center hover:bg-zinc-700 rounded-xl">→</button>
+      </div>
     </div>
   </div>
 
@@ -52,17 +64,40 @@
 
   <script>
     const games = [
-      { id: "ww", name: "Wuthering Waves", logo: "logos/ww-logo.png", skybox: "skyboxes/wuwa.hdr",   cubeSize: 1024 },
-      { id: "sp", name: "Silver Palace",   logo: "logos/sp-logo.png", skybox: "skyboxes/sp.hdr",     cubeSize: 512 }
+      { id: "ww", name: "Wuthering Waves", logo: "logos/ww-logo.png", skybox: "skyboxes/wuwa.hdr", cubeSize: 1024 },
+      { id: "sp", name: "Silver Palace",   logo: "logos/sp-logo.png", skybox: "skyboxes/sp.hdr",   cubeSize: 512 }
     ];
-    
+
     const models = {
       "ww": [
-        { name: "Aemeath", file: "Aemeath.glb", thumb: "thumbnails/ww/T_IconRoleHead256_53_UI.png" },
-        { name: "Character 1002", file: "cart.glb", thumb: "thumbnails/ww/T_IconRoleHead256_1002_UI.png" }
+        { 
+          name: "Aemeath", 
+          type: "glb",
+          skins: [
+            { skinName: "Default", file: "Aemeath.glb" }
+          ],
+          thumb: "thumbnails/ww/T_IconRoleHead256_53_UI.png" 
+        },
+        { 
+          name: "Augusta", 
+          type: "glb",
+          skins: [
+            { skinName: "Default", file: "Aemeath.glb" },
+            { skinName: "Teenager", file : "cart.glb" },
+            { skinName: "Kid", file : "Rosy1.glb"}
+          ],
+          thumb: "thumbnails/ww/T_IconRoleHead256_51_UI.png" 
+        }
       ],
       "sp": [
-        { name: "Detective", file: "test.glb", thumb: "thumbnails/sp/icon_character_card_large_1001.png" }
+        { 
+          name: "Detective", 
+          type: "glb",
+          skins: [
+            { skinName: "Default", file: "test.glb" }
+          ],
+          thumb: "thumbnails/sp/icon_character_card_large_1001.png" 
+        }
       ]
     };
 
@@ -71,6 +106,8 @@
     let currentContainer = null;
     let modelRoot = null;
     let skyboxMesh = null;
+    let currentModelConfig = null;
+    let currentSkinIndex = 0;
 
     tailwind.config = { content: ["*"] };
 
@@ -112,13 +149,20 @@
       });
     }
 
-    async function loadModel(filename, displayName) {
+    async function loadCharacter(modelConfig) {
+      currentModelConfig = modelConfig;
+      currentSkinIndex = 0;
+      loadSkin();
+    }
+
+    async function loadSkin() {
+      if (!currentModelConfig) return;
+      const skin = currentModelConfig.skins[currentSkinIndex];
+      const displayName = `${currentModelConfig.name} — ${skin.skinName}`;
+
       const loadingScreen = document.getElementById('loading');
       const loadingName = document.getElementById('loading-name');
-      const loadingProgress = document.getElementById('loading-progress');
-
       loadingName.textContent = displayName;
-      loadingProgress.textContent = "0%";
       loadingScreen.classList.add('active');
 
       if (currentContainer) { currentContainer.dispose(); currentContainer = null; }
@@ -126,8 +170,8 @@
 
       try {
         const container = await BABYLON.SceneLoader.LoadAssetContainerAsync(
-          "./models/", filename, scene,
-          (evt) => { if (evt.total) loadingProgress.textContent = Math.round((evt.loaded / evt.total) * 100) + "%"; }
+          "./models/", skin.file, scene,
+          (evt) => { if (evt.total) document.getElementById('loading-progress').textContent = Math.round((evt.loaded / evt.total) * 100) + "%"; }
         );
 
         container.addAllToScene();
@@ -135,15 +179,12 @@
 
         modelRoot = new BABYLON.TransformNode("modelRoot", scene);
         const visualMeshes = container.meshes.filter(m => m.getTotalVertices() > 10);
-        visualMeshes.forEach(m => {
-          if (!m.parent || m.parent.name === "__root__") m.parent = modelRoot;
-        });
+        visualMeshes.forEach(m => { if (!m.parent || m.parent.name === "__root__") m.parent = modelRoot; });
 
         const vectors = modelRoot.getHierarchyBoundingVectors(true);
         const size = vectors.max.subtract(vectors.min);
         const maxDim = Math.max(size.x, size.y, size.z);
         const scaleFactor = 8 / maxDim;
-
         modelRoot.scaling.scaleInPlace(scaleFactor);
         modelRoot.position.y = -vectors.min.y * scaleFactor;
 
@@ -151,11 +192,26 @@
         camera.radius = 13;
 
         updateSkybox();
+        updateSkinButton();
 
       } catch(e) { console.error(e); alert("Load failed"); }
 
       setTimeout(() => loadingScreen.classList.remove('active'), 300);
     }
+
+    function updateSkinButton() {
+      const btn = document.getElementById('skin-switcher');
+      if (!currentModelConfig || currentModelConfig.skins.length <= 1) {
+        btn.classList.remove('active');
+        return;
+      }
+      const skin = currentModelConfig.skins[currentSkinIndex];
+      document.getElementById('skin-name').textContent = skin.skinName;
+      btn.classList.add('active');
+    }
+
+    window.prevSkin = () => { if (!currentModelConfig) return; currentSkinIndex = (currentSkinIndex - 1 + currentModelConfig.skins.length) % currentModelConfig.skins.length; loadSkin(); };
+    window.nextSkin = () => { if (!currentModelConfig) return; currentSkinIndex = (currentSkinIndex + 1) % currentModelConfig.skins.length; loadSkin(); };
 
     function updateSkybox() {
       if (!scene) return;
@@ -201,7 +257,10 @@
       initBabylon();
       renderModelList();
       updateSkybox();
-      setTimeout(() => loadModel("cart.glb", "Test Cube"), 300);
+      setTimeout(() => {
+        const first = models["ww"][0];
+        loadCharacter(first);
+      }, 300);
     };
   </script>
 </body>
