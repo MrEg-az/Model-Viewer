@@ -165,16 +165,23 @@
       setTimeout(() => loadingScreen.classList.remove('active'), 300);
     }
 
-    function updateSkybox() {
+   function updateSkybox() {
       if (!scene) return;
-      if (scene.environmentTexture) scene.environmentTexture.dispose();
 
-      const currentGame = games.find(g => g.id === currentGameId);
-      scene.environmentTexture = new BABYLON.HDRCubeTexture(
-        `./${currentGame.skybox}`, 
-        scene, 
-        512, false, true, true, true
-      );
+      if (scene.environmentTexture) {
+        scene.environmentTexture.dispose();
+        scene.environmentTexture = null;
+      }
+
+      const game = games.find(g => g.id === currentGameId);
+      const hdrUrl = `./${game.skybox}`;
+
+      scene.environmentTexture = new BABYLON.HDRCubeTexture(hdrUrl, scene, 512);
+
+      scene.environmentIntensity = 1.4;
+      scene.environmentTexture.rotationY = Math.PI / 2;
+
+      console.log(`🌌 Skybox loaded: ${game.skybox}`);
     }
 
     function initBabylon() {
