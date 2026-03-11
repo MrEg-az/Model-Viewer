@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Wuthering Waves & Silver Palace Viewer</title>
+  
+  <link rel="icon" type="image/png" href="logos/ww-logo.png">
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
   <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
@@ -89,7 +92,6 @@
         b.classList.toggle('tab-active', games[i].id === gameId);
       });
       renderModelList();
-      updateSkybox();
     }
 
     function renderModelList() {
@@ -147,6 +149,8 @@
 
         camera.setTarget(modelRoot.position);
         camera.radius = 13;
+
+        updateSkybox();
 
       } catch(e) { console.error(e); alert("Load failed"); }
 
