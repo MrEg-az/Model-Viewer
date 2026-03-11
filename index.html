@@ -8,20 +8,11 @@
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
   <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
   <style>
-    @font-face {
-      font-family: 'GameFont';
-      src: url('./fonts/text.otf') format('opentype');
-      font-weight: normal;
-      font-display: swap;
-    }
+    @font-face { font-family: 'GameFont'; src: url('./fonts/text.otf') format('opentype'); font-weight: normal; font-display: swap; }
     body { margin: 0; overflow: hidden; font-family: 'GameFont', system-ui, sans-serif; }
     #renderCanvas { width: 100%; height: 100vh; display: block; }
 
-    #loading {
-      position: fixed; inset: 0; background: #09090b;
-      display: none; align-items: center; justify-content: center;
-      z-index: 50; flex-direction: column; gap: 2rem;
-    }
+    #loading { position: fixed; inset: 0; background: #09090b; display: none; align-items: center; justify-content: center; z-index: 50; flex-direction: column; gap: 2rem; }
     #loading.active { display: flex; }
     .spinner { width: 80px; height: 80px; border: 6px solid #27272a; border-top: 6px solid #a1a1aa; border-radius: 50%; animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -58,10 +49,10 @@
 
   <script>
     const games = [
-      { id: "ww", name: "Wuthering Waves", logo: "logos/ww-logo.png", skybox: "skyboxes/wuwa.hdr" },
-      { id: "sp", name: "Silver Palace",   logo: "logos/sp-logo.png", skybox: "skyboxes/sp.hdr" }
+      { id: "ww", name: "Wuthering Waves", logo: "logos/ww-logo.png", skybox: "skyboxes/wuwa.hdr",   cubeSize: 1024 },
+      { id: "sp", name: "Silver Palace",   logo: "logos/sp-logo.png", skybox: "skyboxes/sp.hdr",     cubeSize: 512 }
     ];
-
+    
     const models = {
       "ww": [
         { name: "Aemeath", file: "Aemeath.glb", thumb: "thumbnails/ww/T_IconRoleHead256_53_UI.png" },
@@ -173,12 +164,12 @@
       const game = games.find(g => g.id === currentGameId);
       const hdrUrl = `./${game.skybox}`;
 
-      scene.environmentTexture = new BABYLON.HDRCubeTexture(hdrUrl, scene, 512);
+      scene.environmentTexture = new BABYLON.HDRCubeTexture(hdrUrl, scene, game.cubeSize);
 
-      scene.environmentIntensity = 1.3;
-      scene.environmentTexture.rotationY = Math.PI * 0.6;
+      scene.environmentIntensity = 1.45;
 
-      skyboxMesh = scene.createDefaultSkybox(scene.environmentTexture, true, 1200, 0.6, false);
+      skyboxMesh = scene.createDefaultSkybox(scene.environmentTexture, true, 3000, 0, false);
+      skyboxMesh.infiniteDistance = true;
 
       console.log(`🌌 Visible HDR skybox loaded: ${game.skybox}`);
     }
