@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babylonjs/7.0.0/babylon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babylonjs-loaders/7.0.0/babylonjs.loaders.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/babylon-mmd@0.5.2/dist/babylon-mmd.min.js"></script>
+</head>
+<body>
+  <canvas id="renderCanvas" style="width:100%;height:100vh;"></canvas>
+
+  <script>
+    console.log("BABYLON exists?", !!BABYLON);
+    console.log("MMDLoader exists?", !!BABYLON.MMDLoader);
+
+    const canvas = document.getElementById("renderCanvas");
+    const engine = new BABYLON.Engine(canvas, true);
+    const scene = new BABYLON.Scene(engine);
+
+    const camera = new BABYLON.ArcRotateCamera("cam", Math.PI/2, Math.PI/2, 10, BABYLON.Vector3.Zero(), scene);
+    camera.attachControl(canvas, true);
+
+    engine.runRenderLoop(() => scene.render());
+
+  </script>
+</body>
+</html>
