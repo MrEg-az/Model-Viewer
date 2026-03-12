@@ -6,11 +6,12 @@
   <title>Wuthering Waves & Silver Palace Viewer</title>
   <link rel="icon" type="image/png" href="logos/ww-logo.png">
 
-  <script src="https://cdn.jsdelivr.net/npm/babylon-mmd@0.5.2/dist/babylon-mmd.min.js"></script>
-
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
   <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/babylon-mmd@0.5.2/dist/babylon-mmd.min.js"></script>
+
   <style>
     @font-face { font-family: 'GameFont'; src: url('./fonts/text.otf') format('opentype'); font-weight: normal; font-display: swap; }
     body { margin: 0; overflow: hidden; font-family: 'GameFont', system-ui, sans-serif; }
@@ -69,7 +70,6 @@
       { id: "ww", name: "Wuthering Waves", logo: "logos/ww-logo.png", skybox: "skyboxes/wuwa.hdr", cubeSize: 1024 },
       { id: "sp", name: "Silver Palace",   logo: "logos/sp-logo.png", skybox: "skyboxes/sp.hdr",   cubeSize: 512 }
     ];
-
   
     const models = {
       "ww": [
@@ -186,7 +186,9 @@
 
         modelRoot = new BABYLON.TransformNode("modelRoot", scene);
         const visualMeshes = container.meshes.filter(m => m.getTotalVertices() > 10);
-        visualMeshes.forEach(m => { if (!m.parent || m.parent.name === "__root__") m.parent = modelRoot; });
+        visualMeshes.forEach(m => {
+          if (!m.parent || m.parent.name === "__root__") m.parent = modelRoot;
+        });
 
         const vectors = modelRoot.getHierarchyBoundingVectors(true);
         const size = vectors.max.subtract(vectors.min);
@@ -203,7 +205,7 @@
 
       } catch(e) {
         console.error(e);
-        alert("Load failed.\nMake sure the folder name matches the real folder.");
+        alert("Load failed.\n\nFor MMD: make sure the folder name exactly matches the real folder (case-sensitive).");
       }
 
       setTimeout(() => loadingScreen.classList.remove('active'), 300);
