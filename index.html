@@ -5,9 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Wuthering Waves & Silver Palace Viewer</title>
   <link rel="icon" type="image/png" href="logos/ww-logo.png">
+
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.babylonjs.com/babylon.js"></script>
-  <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+  
+  <script src="js/babylon.min.js"></script>
+  <script src="js/babylonjs.loaders.min.js"></script>
+  
+  <script src="https://cdn.jsdelivr.net/gh/Symbitic/babylon-mmd@master/dist/babylon-mmd.min.js"></script>
+
   <style>
     @font-face { font-family: 'GameFont'; src: url('./fonts/text.otf') format('opentype'); font-weight: normal; font-display: swap; }
     body { margin: 0; overflow: hidden; font-family: 'GameFont', system-ui, sans-serif; }
@@ -66,36 +71,32 @@
       { id: "ww", name: "Wuthering Waves", logo: "logos/ww-logo.png", skybox: "skyboxes/wuwa.hdr", cubeSize: 1024 },
       { id: "sp", name: "Silver Palace",   logo: "logos/sp-logo.png", skybox: "skyboxes/sp.hdr",   cubeSize: 512 }
     ];
-
+  
     const models = {
       "ww": [
         { 
-          name: "Aemeath", 
+          name: "Aemeath",
           type: "glb",
-          skins: [
-            { skinName: "Default", file: "Aemeath.glb" }
-          ],
-          thumb: "thumbnails/ww/T_IconRoleHead256_53_UI.png" 
+          thumb: "thumbnails/ww/T_IconRoleHead256_53_UI.png",
+          skins: [{ skinName: "Default", file: "Aemeath.glb" }]
         },
         { 
           name: "Augusta", 
-          type: "glb",
+          type: "mmd",
+          thumb: "thumbnails/ww/T_IconRoleHead256_51_UI.png",
           skins: [
-            { skinName: "Default", file: "cart.glb" },
-            { skinName: "Teenager", file : "din.glb" },
-            { skinName: "Kid", file : "Rosy1.glb"}
-          ],
-          thumb: "thumbnails/ww/T_IconRoleHead256_51_UI.png" 
+            { skinName: "Default", file: "Augusta.pmx", folder: "Augusta" },
+            { skinName: "Teen", file: "Augusta_T.pmx", folder: "Augusta_T" },
+            { skinName: "Kid", file: "Augusta_K.pmx", folder: "Augusta_K" }
+          ]
         }
       ],
       "sp": [
         { 
           name: "Detective", 
           type: "glb",
-          skins: [
-            { skinName: "Default", file: "test.glb" }
-          ],
-          thumb: "thumbnails/sp/icon_character_card_large_1001.png" 
+          thumb: "thumbnails/sp/icon_character_card_large_1001.png",
+          skins: [{ skinName: "Default", file: "test.glb" }]
         }
       ]
     };
@@ -170,10 +171,16 @@
       if (modelRoot) { modelRoot.dispose(); modelRoot = null; }
 
       try {
-        const container = await BABYLON.SceneLoader.LoadAssetContainerAsync(
-          "./models/", skin.file, scene,
-          (evt) => { if (evt.total) loadingProgress.textContent = Math.round((evt.loaded / evt.total) * 100) + "%"; }
-        );
+        let container;
+
+        if (currentModelConfig.type === "mmd") {
+          const baseUrl = `./models/${skin.folder}/`;
+          const mmdLoader = new BABYLON.MMDLoader(scene);
+          container = await mmdLoader.loadMeshAsync(baseUrl, skin.file);
+          console.log(`✅ MMD loaded: ${skin.file} from folder ${skin.folder}`);
+        } else {
+          container = await BABYLON.SceneLoader.LoadAssetContainerAsync("./models/", skin.file, scene);
+        }
 
         container.addAllToScene();
         currentContainer = container;
@@ -197,7 +204,10 @@
         updateSkybox();
         updateSkinButton();
 
-      } catch(e) { console.error(e); alert("Load failed"); }
+      } catch(e) {
+        console.error(e);
+        alert(`Load failed for ${skin.file}\n\nFolder must be exactly: models/${skin.folder}/\n(Check case and spelling!)`);
+      }
 
       setTimeout(() => loadingScreen.classList.remove('active'), 300);
     }
@@ -249,6 +259,7 @@
       camera = new BABYLON.ArcRotateCamera("cam", Math.PI/2, Math.PI/2.4, 13, BABYLON.Vector3.Zero(), scene);
       camera.attachControl(canvas, true);
       camera.wheelPrecision = 50;
+      camera.pinchPrecision = 100;
 
       new BABYLON.HemisphericLight("h", new BABYLON.Vector3(0,1,0), scene);
       const dlight = new BABYLON.DirectionalLight("d", new BABYLON.Vector3(-1,-1,-1), scene);
@@ -263,10 +274,7 @@
       initBabylon();
       renderModelList();
       updateSkybox();
-      setTimeout(() => {
-        const first = models["ww"][0];
-        loadCharacter(first);
-      }, 300);
+      setTimeout(() => loadCharacter(models["ww"][0]), 300);
     };
   </script>
 </body>
