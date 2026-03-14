@@ -8,8 +8,8 @@
 
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <script src="https://cdn.babylonjs.com/v7.0/babylon.js"></script>
-  <script src="https://cdn.babylonjs.com/v7.0/babylonjs.loaders.js"></script>
+  <script src="https://unpkg.com/babylonjs@7.0.0/babylon.js"></script>
+  <script src="https://unpkg.com/babylonjs-loaders@7.0.0/babylonjs.loaders.js"></script>
 
   <script src="https://cdn.jsdelivr.net/gh/Symbitic/babylon-mmd@master/dist/babylon-mmd.min.js"></script>
 
@@ -256,10 +256,6 @@
       scene = new BABYLON.Scene(engine);
       scene.clearColor = new BABYLON.Color4(0.02, 0.02, 0.05, 1);
 
-      if (typeof BABYLON.GLTF2FileLoader !== 'undefined') {
-        BABYLON.SceneLoader.RegisterPlugin(new BABYLON.GLTF2FileLoader());
-      }
-
       camera = new BABYLON.ArcRotateCamera("cam", Math.PI/2, Math.PI/2.4, 13, BABYLON.Vector3.Zero(), scene);
       camera.attachControl(canvas, true);
       camera.wheelPrecision = 50;
@@ -274,6 +270,11 @@
     }
 
     window.onload = () => {
+      if (typeof BABYLON === 'undefined') {
+        alert("Babylon.js failed to load! Check your internet or try a different browser.");
+        console.error("BABYLON is undefined - script load failed");
+        return;
+      }
       createGameTabs();
       initBabylon();
       renderModelList();
