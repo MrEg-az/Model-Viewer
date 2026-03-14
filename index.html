@@ -8,9 +8,9 @@
 
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babylonjs/7.0.0/babylon.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babylonjs-loaders/7.0.0/babylonjs.loaders.min.js"></script>
-  
+  <script src="https://cdn.babylonjs.com/v7.0/babylon.js"></script>
+  <script src="https://cdn.babylonjs.com/v7.0/babylonjs.loaders.js"></script>
+
   <script src="https://cdn.jsdelivr.net/gh/Symbitic/babylon-mmd@master/dist/babylon-mmd.min.js"></script>
 
   <style>
@@ -71,17 +71,17 @@
       { id: "ww", name: "Wuthering Waves", logo: "logos/ww-logo.png", skybox: "skyboxes/wuwa.hdr", cubeSize: 1024 },
       { id: "sp", name: "Silver Palace",   logo: "logos/sp-logo.png", skybox: "skyboxes/sp.hdr",   cubeSize: 512 }
     ];
-  
+
     const models = {
       "ww": [
-        { 
+        {
           name: "Aemeath",
           type: "glb",
           thumb: "thumbnails/ww/T_IconRoleHead256_53_UI.png",
           skins: [{ skinName: "Default", file: "Aemeath.glb" }]
         },
-        { 
-          name: "Augusta", 
+        {
+          name: "Augusta",
           type: "mmd",
           thumb: "thumbnails/ww/T_IconRoleHead256_51_UI.png",
           skins: [
@@ -92,8 +92,8 @@
         }
       ],
       "sp": [
-        { 
-          name: "Detective", 
+        {
+          name: "Detective",
           type: "glb",
           thumb: "thumbnails/sp/icon_character_card_large_1001.png",
           skins: [{ skinName: "Default", file: "test.glb" }]
@@ -206,7 +206,7 @@
 
       } catch(e) {
         console.error(e);
-        alert(`Load failed for ${skin.file}\n\nFolder must be exactly: models/${skin.folder}/\n(Check case and spelling!)`);
+        alert(`Load failed for ${skin.file}\n\nCheck folder name and file exists!`);
       }
 
       setTimeout(() => loadingScreen.classList.remove('active'), 300);
@@ -255,6 +255,8 @@
       engine = new BABYLON.Engine(canvas, true, { powerPreference: "default" });
       scene = new BABYLON.Scene(engine);
       scene.clearColor = new BABYLON.Color4(0.02, 0.02, 0.05, 1);
+
+      BABYLON.SceneLoader.RegisterPlugin(new BABYLON.GLTF2FileLoader());
 
       camera = new BABYLON.ArcRotateCamera("cam", Math.PI/2, Math.PI/2.4, 13, BABYLON.Vector3.Zero(), scene);
       camera.attachControl(canvas, true);
