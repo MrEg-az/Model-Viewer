@@ -8,8 +8,8 @@
 
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babylonjs/7.0.0/babylon.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babylonjs-loaders/7.0.0/babylonjs.loaders.min.js"></script>
+  <script src="https://cdn.babylonjs.com/v7.0/babylon.js"></script>
+  <script src="https://cdn.babylonjs.com/v7.0/babylonjs.loaders.js"></script>
 
   <script src="https://cdn.jsdelivr.net/gh/Symbitic/babylon-mmd@master/dist/babylon-mmd.min.js"></script>
 
@@ -255,6 +255,10 @@
       engine = new BABYLON.Engine(canvas, true, { powerPreference: "default" });
       scene = new BABYLON.Scene(engine);
       scene.clearColor = new BABYLON.Color4(0.02, 0.02, 0.05, 1);
+
+      if (typeof BABYLON.GLTF2FileLoader !== 'undefined') {
+        BABYLON.SceneLoader.RegisterPlugin(new BABYLON.GLTF2FileLoader());
+      }
 
       camera = new BABYLON.ArcRotateCamera("cam", Math.PI/2, Math.PI/2.4, 13, BABYLON.Vector3.Zero(), scene);
       camera.attachControl(canvas, true);
