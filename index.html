@@ -8,10 +8,8 @@
 
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <script src="https://unpkg.com/babylonjs@7.0.0/babylon.js"></script>
-  <script src="https://unpkg.com/babylonjs-loaders@7.0.0/babylonjs.loaders.js"></script>
-
-  <script src="https://unpkg.com/babylon-mmd@0.5.2/dist/babylon-mmd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babylonjs/7.0.0/babylon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babylonjs-loaders/7.0.0/babylonjs.loaders.min.js"></script>
 
   <style>
     @font-face { font-family: 'GameFont'; src: url('./fonts/text.otf') format('opentype'); font-weight: normal; font-display: swap; }
@@ -175,6 +173,7 @@
 
         if (currentModelConfig.type === "mmd") {
           const baseUrl = `./models/${skin.folder}/`;
+          await new Promise(resolve => setTimeout(resolve, 50));
           const mmdLoader = new BABYLON.MMDLoader(scene);
           container = await mmdLoader.loadMeshAsync(baseUrl, skin.file);
           console.log(`✅ MMD loaded: ${skin.file} from folder ${skin.folder}`);
@@ -270,11 +269,6 @@
     }
 
     window.onload = () => {
-      if (typeof BABYLON === 'undefined') {
-        alert("Babylon.js failed to load! Check your internet or try a different browser.");
-        console.error("BABYLON is undefined - script load failed");
-        return;
-      }
       createGameTabs();
       initBabylon();
       renderModelList();
